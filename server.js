@@ -23,6 +23,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join_room", async (room) => {
+    console.log("joined room");
     const existingRooms = await models.getRooms();
     const index = existingRooms.findIndex(
       (existingRoom) => existingRoom.room === room
@@ -30,43 +31,49 @@ io.on("connection", (socket) => {
     if (index === -1) {
       await models.addRoom(room);
       const rooms = await models.getRooms();
-      socket.emit("get_rooms", rooms);
+      io.emit("get_rooms", rooms);
+
     }
     socket.join(room);
+    const roomsArray = Array.from(socket.rooms);
+    if (roomsArray.length === 3) {
+      const leaveRoom = roomsArray[1];
+      socket.leave(leaveRoom);
+    }
     console.log(`User with ID: ${socket.id} joined room: ${room}`);
+    const messages = await models.getMessages(room);
+    io.to(room).emit("get_messeges", messages);
   });
 
-socket.on("save_username", (username) => {
-  models.addUser(username);
-});
+  socket.on("save_username", (username) => {
+    models.addUser(username);
+  });
 
   socket.on("send_message", (data) => {
     if (data.message === "") {
       console.log("dont send empty messages");
     } else {
-
-      socket.to(data.room).emit("receive_message", data);
+      io.to(data.room).emit("receive_message", data);
       models.addMessage(data);
-      console.log(data)
+      console.log(data);
     }
   });
 
   socket.on("delete_room", async (room) => {
     models.deleteRoom(room);
     models.deleteMessages(room);
-    const messages = await models.getMessages();
     const rooms = await models.getRooms();
-    socket.emit("get_rooms", rooms);
-    socket.emit("get_messeges", messages);
+    io.emit("get_rooms", rooms);
+
+   // const messages = await models.getMessages();
+    //socket.emit("get_messeges", messages);
   });
 
   socket.on("leave_room", () => {
-    console.log("Left room");
     socket.leave(socket.rooms);
   });
 
   socket.on("disconnect", () => {
-   
     console.log(`User with ID: ${socket.id} disconnected`);
   });
 });
