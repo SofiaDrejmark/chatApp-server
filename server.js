@@ -66,9 +66,6 @@ io.on("connection", (socket) => {
     models.deleteMessages(room);
     const rooms = await models.getRooms();
     io.emit("get_rooms", rooms);
-
-   // const messages = await models.getMessages();
-    //socket.emit("get_messeges", messages);
   });
 
   socket.on("leave_room", () => {
